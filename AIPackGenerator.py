@@ -20,6 +20,8 @@ class PackGenerator:
         self.__time_taken = []
         self.__dir_list = []
 
+        self.__failed_list = []
+
         self.__img_size = img_size
 
     def __calc_time_remaining(self, start, end, iter_num, list_len):
@@ -70,19 +72,69 @@ class PackGenerator:
 
     def __ai_generation(self, prompt, curr_directory, prompt_prefix):
         if prompt_prefix == '':
-            if(self.__gen_individual_output): print(f"Generating: {prompt}")
-            ai_res = self.__gen.generate(prompt)
+            #if(self.__gen_individual_output): print(f"Generating: {prompt}")
+
+            try:
+                ai_res = self.__gen.generate(prompt)
+            except:
+                if self.__gen_individual_output: print(f'(Too many requests) Failed generating: {prompt}, will try later.')
+                self.__failed_list.append((prompt, curr_directory, prompt_prefix))
+                return
         else:
             prefix = prompt_prefix + ' '
-            if(self.__gen_individual_output): print(f"Generating: {prefix}{prompt}")
-            ai_res = self.__gen.generate(prefix + prompt)
+            #if(self.__gen_individual_output): print(f"Generating: {prefix}{prompt}")
+            
+            try:
+                ai_res = self.__gen.generate(prefix + prompt)
+            except:
+                if self.__gen_individual_output: print(f'(Too many requests) Failed generating: {prompt_prefix} {prompt}, will try later.')
+                self.__failed_list.append((prompt, curr_directory, prompt_prefix)) 
+                return
 
         file_name = prompt.replace(' ', '_')
         self.__save_image(ai_res, curr_directory, file_name)
 
-        if self.__gen_individual_output:
-            if (prompt_prefix != ''): print(f"Finished generating: {prompt}.")
-            else: print(f"Finished generating: {prompt_prefix} {prompt}.")
+        # if self.__gen_individual_output:
+        #     if (prompt_prefix != ''): print(f"Finished generating: {prompt}.")
+        #     else: print(f"Finished generating: {prompt_prefix} {prompt}.")
+
+    def __regenerate(self):
+        if self.__gen_individual_output: print('Regenerating failed attempts.')
+        self.__time_taken.clear()
+
+        failed_list_copy = self.__failed_list[:]
+
+        threads = []
+        active_threads = []
+        counter = 0
+
+        iter_counter = 0
+
+        for i in range(len(failed_list_copy)):
+            new_thread = Thread(target = self.__ai_generation, args = failed_list_copy[i])
+            threads.append(new_thread)
+            self.__failed_list.remove(failed_list_copy[i])
+
+        for i in range(len(threads)):
+            threads[i].start()
+            active_threads.append(threads[i])
+            counter += 1
+
+            if counter == self.__request_limit:
+                start_time = time.time()
+                iter_counter += 1
+
+                for k in active_threads:
+                    k.join()
+
+                end_time = time.time()
+                time_remaining = self.__calc_time_remaining(start_time, end_time, iter_counter, len(threads))
+
+                print(f'Time Remaining: {time_remaining}.')
+
+                counter = 0
+
+        if len(self.__failed_list) != 0: self.__regenerate()
 
     def generate(self, prompt_prefix=''):
         self.__gen_dir_list(self.path)
@@ -108,7 +160,7 @@ class PackGenerator:
             active_threads.append(threads[i])
             counter += 1
 
-            if counter == self.__request_limit:
+            if counter == self.__request_limit or i == len(threads) - 1:
                 start_time = time.time()
                 iter_counter += 1
 
@@ -121,6 +173,8 @@ class PackGenerator:
                 print(f'Time Remaining: {time_remaining}.')
 
                 counter = 0
+
+        if len(self.__failed_list) != 0: self.__regenerate()
 
         return
     
@@ -135,6 +189,6 @@ class PackGenerator:
     
 
 # Testing
-pack_gen = PackGenerator(Path(Path.cwd() / 'source/textures'), 75, 'output/faithful_ai', True, 16)
+pack_gen = PackGenerator(Path(Path.cwd() / 'source/textures'), 1500, 'output/faithful_16x', True, 16)
 
-pack_gen.generate('Hatsune Miku')
+pack_gen.generate()

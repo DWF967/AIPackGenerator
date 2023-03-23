@@ -39,7 +39,7 @@ decorator = PackDecorator(Path(Path.cwd() / 'output/pack_output/')
 
 The `PackDecorator` class only takes one parameter: the directory where the `PackGenerator` output all of its files.
 
-###### Resizing images
+### Resizing images
 Since Craiyon generates images that are 1024x1024, we need to resize them in order for Minecraft to recognize the pack as a valid pack. To do this, we can call the `resize_images` function in `PackDecorator`.
 
 ```py

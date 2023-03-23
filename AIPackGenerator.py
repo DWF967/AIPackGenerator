@@ -9,7 +9,7 @@ from os import walk as oswalk
 from threading import Thread
 
 class FileSearcher:
-    
+
     def __init__(self, directory):
         self.__directory = directory    
 
@@ -54,19 +54,6 @@ class PackGenerator:
 
         self.__time_taken = []
         self.__failed_list = []
-
-    def __calc_time_remaining(self, start, end, iter_num, list_len):
-        curr_time_taken = end-start
-        self.__time_taken.append(curr_time_taken)
-        est_time = ((sum(self.__time_taken))/len(self.__time_taken)) * ((list_len//self.__request_limit)-iter_num)
-
-        est_hours = est_time//60//60
-        est_min = est_time//60 - est_hours*60*60
-        est_sec = est_time - est_min*60
-
-        res = f'{est_hours} hours, {est_min} minutes, {round(est_sec)} seconds.'
-
-        return res
 
     def __save_image(self, generated_images, curr_directory, file_name):
         path = (Path.cwd() / f'{self.__output_dir}/assets/minecraft/textures/{curr_directory}') 
@@ -180,6 +167,7 @@ class PackGenerator:
         self.__output_dir = new_dir
     
 class PackDecorator:
+    
     def __init__(self, path):
         self.__path = path
         self.__file_searcher = FileSearcher(path)

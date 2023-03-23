@@ -173,9 +173,6 @@ class PackGenerator:
 
         return
     
-    def set_img_size(self, new_size):
-        self.__img_size = new_size
-    
     def set_request_limit(self, new_limit):
         self.__request_limit = new_limit
 
@@ -193,9 +190,14 @@ class PackDecorator:
             file_list = self.__file_searcher.gen_file_list(i)
             for k in file_list:
                 self.__file_list.append(k)
-    
-    def gen_pack_files(self, desc):
 
+        self.__gen = Craiyon()
+    
+    def gen_pack_files(self, desc, version, prefix=''):
+        with open(self.__path / 'pack.mcmeta', 'w') as pack_mcmeta:
+            pack_mcmeta.write(f'{{"pack": {{"pack_format": {version},"description": {desc}}}}}')
+
+        self.__ai_generation('pack.png', prefix)
         return
     
     def __resize_image(self, dir, name, size):
@@ -223,3 +225,20 @@ class PackDecorator:
             i.join()    
 
         print('finished')    
+
+    def __save_image(self, generated_images, file_name):
+        with open(self.__path / f'{file_name}', 'wb') as f:
+            f.write(base64.decodebytes(generated_images.images[randint(0, 8)].encode('utf-8')))
+
+    def __ai_generation(self, prompt, prefix=''):
+        print(f'Generating {prefix}{prompt}')
+
+        try:
+            ai_res = self.__gen.generate(prefix + prompt)
+        except:
+            self.__ai_generation(prefix + prompt)
+            return
+        
+        self.__save_image(ai_res, prompt)
+        
+        print(f"Finished generating: {prompt}.")
